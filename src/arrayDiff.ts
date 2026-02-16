@@ -1,5 +1,6 @@
-import {objectDiff} from "@/utils/diff/objectDiff.ts";
-import {deepEquals} from "@/utils/diff/deepEquals.ts";
+import {objectDiff} from "./objectDiff";
+import {deepEquals} from "./deepEquals";
+import type {ArrayDiff} from "./type/DiffItem";
 
 export const arrayDiff = <T extends Record<string, unknown>>(
     prevList: ReadonlyArray<T> | undefined | null,
@@ -46,7 +47,7 @@ export const arrayDiff = <T extends Record<string, unknown>>(
         for (const prev of prevWithIndexSet) {
             const {item: prevItem, index: prevIndex} = prev
 
-            let matchedNext: {item: T, index: number} | undefined = undefined
+            let matchedNext: { item: T, index: number } | undefined = undefined
             for (const next of nextWithIndexSet) {
                 if (fn(prevItem, next.item)) matchedNext = next
             }

@@ -1,5 +1,13 @@
-import {deepEquals} from "@/utils/diff/deepEquals.ts";
-import {arrayDiff} from "@/utils/diff/arrayDiff.ts";
+import {deepEquals} from "./deepEquals";
+import {arrayDiff} from "./arrayDiff";
+import type {
+    ArrayDiff,
+    CircularReferenceDiff,
+    ObjectDiff,
+    PropertyAddedDiffItem,
+    PropertyDeletedDiffItem,
+    PropertyUpdatedDiffItem
+} from "./type/DiffItem";
 
 export const objectDiff = <T extends Record<string, unknown>, U extends Record<string, unknown> = T>(
     oldVal: T | undefined | null,

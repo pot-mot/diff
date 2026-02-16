@@ -1,18 +1,39 @@
 {
   "name": "@potmot/diff",
-  "version": "1.0.0",
-  "description": "simple diff",
-  "main": "index.js",
-  "scripts": {},
-  "keywords": [],
-  "author": "potmot",
+  "private": false,
+  "version": "0.0.0",
+  "description": "Lightweight deep diff tool for JavaScript objects and arrays.",
+  "keywords": ["diff", "deep-equals"],
+  "homepage": "https://github.com/potmot/potmot-diff#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/pot-mot/diff.git"
+  },
+  "bugs": {
+    "url": "https://github.com/pot-mot/diff/issues"
+  },
+  "type": "module",
   "license": "MIT",
-  "packageManager": "pnpm@10.11.0",
-  "dependencies": {
-    "typescript": "^5.9.3"
+  "author": "potmot",
+  "main": "./dist/potmot-diff.js",
+  "module": "./dist/potmot-diff.js",
+  "types": "./dist/potmot-diff.d.ts",
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "vite build",
+    "test": "vitest run"
   },
   "devDependencies": {
-    "@types/node": "^25.0.3",
-    "tsx": "^4.21.0"
+    "@tsconfig/node22": "^22.0.5",
+    "@types/node": "^25.2.3",
+    "typescript": "~5.9.3",
+    "vite": "^7.3.1",
+    "vite-plugin-dts": "^4.5.4",
+    "vitest": "^4.0.18"
   }
 }

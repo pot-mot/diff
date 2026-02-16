@@ -1,5 +1,6 @@
 import {describe, it, expect, assert} from 'vitest';
-import {objectDiff} from '../src/objectDiff.ts';
+import {objectDiff} from '../objectDiff';
+import type {ArrayDiff, ObjectDiff} from "../type/DiffItem";
 
 describe('objectDiff', () => {
     it('empty object', () => {

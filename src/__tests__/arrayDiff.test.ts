@@ -1,5 +1,7 @@
 import {describe, it, expect} from 'vitest'
-import {arrayDiff} from "../src/arrayDiff.ts";
+import {arrayDiff} from "../arrayDiff";
+import type {DeepReadonly} from "../type/DeepReadonly";
+import type {ArrayDiff, ArrayUpdatedDiffItem, ObjectDiff} from "../type/DiffItem";
 
 // 定义测试数据类型
 type TestItem = DeepReadonly<{
