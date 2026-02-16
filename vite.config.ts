@@ -6,17 +6,16 @@ import {resolve} from "path";
 export default defineConfig({
     build: {
         lib: {
-            entry: resolve(__dirname, 'src/main.ts'), // 使用绝对路径
-            name: 'PotmotDiff',
-            fileName: 'potmot-diff',
+            entry: resolve(__dirname, 'src/index.ts'),
+            name: '@potmot/diff',
+            formats: ['es', 'umd'],
+            fileName: 'index'
         },
     },
     plugins: [
         dts({
-            insertTypesEntry: true,
-            rollupTypes: true,
-            tsconfigPath: './tsconfig.node.json', // 指定 tsconfig 路径
-            outDir: 'dist', // 输出目录
+            tsconfigPath: './tsconfig.node.json',
+            include: ['src/**/*.ts'],
         })
     ],
     test: {

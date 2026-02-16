@@ -3,11 +3,12 @@
   "private": false,
   "version": "0.0.0",
   "description": "Lightweight deep diff tool for JavaScript objects and arrays.",
-  "keywords": ["diff", "deep-equals"],
-  "homepage": "https://github.com/potmot/potmot-diff#readme",
+  "keywords": ["diff"],
+  "homepage": "https://github.com/pot-mot/diff/blob/main/README.md",
   "repository": {
     "type": "git",
-    "url": "https://github.com/pot-mot/diff.git"
+    "url": "git+https://github.com/pot-mot/diff.git",
+    "directory": "dist"
   },
   "bugs": {
     "url": "https://github.com/pot-mot/diff/issues"
@@ -15,17 +16,27 @@
   "type": "module",
   "license": "MIT",
   "author": "potmot",
-  "main": "./dist/potmot-diff.js",
-  "module": "./dist/potmot-diff.js",
-  "types": "./dist/potmot-diff.d.ts",
+  "main": "./dist/index.umd.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.umd.cjs"
+    },
+    "./*": "./*"
+  },
   "files": [
+    "package.json",
+    "README.md",
+    "LICENSE",
     "dist"
   ],
   "publishConfig": {
     "access": "public"
   },
   "scripts": {
-    "build": "vite build",
+    "build": "tsc & vite build",
     "test": "vitest run"
   },
   "devDependencies": {
