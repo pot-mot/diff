@@ -48,4 +48,4 @@ export const deepEquals = (a: any, b: any): boolean => {
     }
 
     return true;
-}
+};
