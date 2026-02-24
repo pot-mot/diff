@@ -24,7 +24,7 @@ export default defineConfig({
         coverage: {
             enabled: true,
             provider: 'v8',
-            clean: true,
+            cleanOnRerun: true,
         },
     },
 });

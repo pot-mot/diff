@@ -40,7 +40,6 @@
   "scripts": {
     "build": "tsc & vite build",
     "test": "vitest run",
-    "coverage": "vitest run --coverage",
     "lint:pritter": "prettier --write src/"
   },
   "devDependencies": {
