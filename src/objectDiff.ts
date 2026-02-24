@@ -121,12 +121,12 @@ export const objectDiff = <
                 if (Array.isArray(oldValue) && Array.isArray(newValue)) {
                     diff = arrayDiff(oldValue, newValue, deepMatchFnList, deepMatchFnList);
                 } else if (
-                    typeof oldValue === 'object' &&
-                    typeof newValue === 'object' &&
                     oldValue !== null &&
                     newValue !== null &&
                     oldValue !== undefined &&
-                    newValue !== undefined
+                    newValue !== undefined &&
+                    typeof oldValue === 'object' &&
+                    typeof newValue === 'object'
                 ) {
                     // 传递已访问的 WeakMap 以处理嵌套对象的循环引用
                     diff = objectDiff(

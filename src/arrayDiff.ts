@@ -1,6 +1,6 @@
 import {objectDiff} from './objectDiff';
 import {deepEquals} from './deepEquals';
-import type {ArrayDiff} from './type/DiffItem';
+import type {ArrayDiff, CircularReferenceDiff, ObjectDiff} from './type/DiffItem';
 
 export const arrayDiff = <T extends Record<string, unknown>>(
     prevList: ReadonlyArray<T> | undefined | null,
@@ -68,31 +68,34 @@ export const arrayDiff = <T extends Record<string, unknown>>(
                         });
                     }
                 } else {
-                    const diffResult =
-                        Array.isArray(prevItem) && Array.isArray(nextItem)
-                            ? arrayDiff(
-                                  prevItem,
-                                  nextItem,
-                                  deepMatchFnList,
-                                  deepMatchFnList,
-                                  visitedOld,
-                                  visitedNew,
-                              )
-                            : typeof prevItem === 'object' && typeof nextItem === 'object'
-                              ? objectDiff(
-                                    prevItem,
-                                    nextItem,
-                                    deepMatchFnList,
-                                    visitedOld,
-                                    visitedNew,
-                                )
-                              : undefined;
+                    let diff: ObjectDiff<any> | ArrayDiff<any> | CircularReferenceDiff | undefined =
+                        undefined;
+
+                    if (Array.isArray(prevItem) && Array.isArray(nextItem)) {
+                        diff = arrayDiff(prevItem, nextItem, deepMatchFnList, deepMatchFnList);
+                    } else if (
+                        prevItem !== null &&
+                        nextItem !== null &&
+                        prevItem !== undefined &&
+                        nextItem !== undefined &&
+                        typeof prevItem === 'object' &&
+                        typeof nextItem === 'object'
+                    ) {
+                        diff = objectDiff(
+                            prevItem,
+                            nextItem,
+                            deepMatchFnList,
+                            visitedOld,
+                            visitedNew,
+                        );
+                    }
+
                     result.updated.push({
                         prevData: prevItem,
                         prevIndex: prevIndex,
                         nextData: nextItem,
                         nextIndex: nextIndex,
-                        diff: diffResult as any,
+                        diff: diff as any,
                     });
                 }
 

@@ -21,5 +21,10 @@ export default defineConfig({
     test: {
         globals: false,
         environment: 'node',
+        coverage: {
+            enabled: true,
+            provider: 'v8',
+            clean: true,
+        },
     },
 });
