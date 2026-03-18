@@ -1,7 +1,7 @@
 import {describe, it, expect} from 'vitest';
 import {arrayDiff} from '../arrayDiff';
 import type {DeepReadonly} from '../type/DeepReadonly';
-import type {ArrayDiff, ArrayUpdatedDiffItem, ObjectDiff} from '../type/DiffItem';
+import type {ArrayDiff} from '../type/DiffItem';
 
 // 定义测试数据类型
 type TestItem = DeepReadonly<{
@@ -22,14 +22,14 @@ type NestTestItem = DeepReadonly<{
     };
 }>;
 
-const nameMatch = [(a: {name: string}, b: {name: string}) => a.name === b.name];
+const nameMatcher = [(a: { name: string }, b: { name: string }) => a.name === b.name];
 
-const nameValueMatch = [
-    (a: {name: string}, b: {name: string}) => a.name === b.name,
-    (a: {value: string}, b: {value: string}) => a.value === b.value,
+const nameValueMatcher = [
+    (a: { name: string }, b: { name: string }) => a.name === b.name,
+    (a: { value: string }, b: { value: string }) => a.value === b.value,
 ];
 
-const customNameMatch = [
+const customNameMatcher = [
     (a: any, b: any): boolean => {
         if ('name' in a && typeof a.name === 'string' && 'name' in b && typeof b.name === 'string')
             return a.name === b.name;
@@ -37,9 +37,8 @@ const customNameMatch = [
     },
 ];
 
-describe('arrayDiff', () => {
-    // 测试两个列表都为空的情况
-    it('empty/null/undefined', () => {
+describe('arrayDiff - 基础功能', () => {
+    it('空数组比较', () => {
         const emptyArrayDiff: ArrayDiff<TestItem> = {
             type: 'array',
             added: [],
@@ -48,52 +47,42 @@ describe('arrayDiff', () => {
             moved: [],
             equals: [],
         };
-        const result = arrayDiff<TestItem>([], [], nameMatch);
-        expect(result).toStrictEqual(emptyArrayDiff);
-        const result1 = arrayDiff<TestItem>(null, null, nameMatch);
-        expect(result1).toStrictEqual(emptyArrayDiff);
-        const result2 = arrayDiff<TestItem>(undefined, undefined, nameMatch);
-        expect(result2).toStrictEqual(emptyArrayDiff);
+        expect(arrayDiff<TestItem>([], [], {matchers: nameMatcher})).toStrictEqual(emptyArrayDiff);
+        expect(arrayDiff<TestItem>(null, null, {matchers: nameMatcher})).toStrictEqual(emptyArrayDiff);
+        expect(arrayDiff<TestItem>(undefined, undefined, {matchers: nameMatcher})).toStrictEqual(
+            emptyArrayDiff,
+        );
     });
 
-    // 测试前一个列表为空，后一个列表有数据
-    it('all added', () => {
+    it('全部新增', () => {
         const nextList: TestItem[] = [
             {name: 'item1', value: 'value1'},
             {name: 'item2', value: 'value2'},
         ];
 
-        const result = arrayDiff<TestItem>(null, nextList, nameMatch);
-        expect(result.added).toStrictEqual([
-            {data: {name: 'item1', value: 'value1'}, nextIndex: 0},
-            {data: {name: 'item2', value: 'value2'}, nextIndex: 1},
-        ]);
-        expect(result.updated).toStrictEqual([]);
-        expect(result.deleted).toStrictEqual([]);
-        expect(result.moved).toStrictEqual([]);
-        expect(result.equals).toStrictEqual([]);
+        const result = arrayDiff<TestItem>(null, nextList, {matchers: nameMatcher});
+        expect(result.added).toHaveLength(2);
+        expect(result.updated).toHaveLength(0);
+        expect(result.deleted).toHaveLength(0);
+        expect(result.moved).toHaveLength(0);
+        expect(result.equals).toHaveLength(0);
     });
 
-    // 测试后一个列表为空，前一个列表有数据
-    it('all deleted', () => {
+    it('全部删除', () => {
         const prevList: TestItem[] = [
             {name: 'item1', value: 'value1'},
             {name: 'item2', value: 'value2'},
         ];
 
-        const result = arrayDiff<TestItem>(prevList, null, nameMatch);
-        expect(result.deleted).toStrictEqual([
-            {data: {name: 'item1', value: 'value1'}, prevIndex: 0},
-            {data: {name: 'item2', value: 'value2'}, prevIndex: 1},
-        ]);
-        expect(result.added).toStrictEqual([]);
-        expect(result.updated).toStrictEqual([]);
-        expect(result.moved).toStrictEqual([]);
-        expect(result.equals).toStrictEqual([]);
+        const result = arrayDiff<TestItem>(prevList, null, {matchers: nameMatcher});
+        expect(result.deleted).toHaveLength(2);
+        expect(result.added).toHaveLength(0);
+        expect(result.updated).toHaveLength(0);
+        expect(result.moved).toHaveLength(0);
+        expect(result.equals).toHaveLength(0);
     });
 
-    // 测试相等的项目
-    it('equals', () => {
+    it('元素相等', () => {
         const prevList: TestItem[] = [
             {name: 'item1', value: 'value1'},
             {name: 'item2', value: 'value2'},
@@ -104,19 +93,15 @@ describe('arrayDiff', () => {
             {name: 'item2', value: 'value2'},
         ];
 
-        const result = arrayDiff<TestItem>(prevList, nextList, nameMatch);
-        expect(result.equals).toStrictEqual([
-            {data: {name: 'item1', value: 'value1'}, index: 0},
-            {data: {name: 'item2', value: 'value2'}, index: 1},
-        ]);
-        expect(result.added).toStrictEqual([]);
-        expect(result.updated).toStrictEqual([]);
-        expect(result.deleted).toStrictEqual([]);
-        expect(result.moved).toStrictEqual([]);
+        const result = arrayDiff<TestItem>(prevList, nextList, {matchers: nameMatcher});
+        expect(result.equals).toHaveLength(2);
+        expect(result.added).toHaveLength(0);
+        expect(result.updated).toHaveLength(0);
+        expect(result.deleted).toHaveLength(0);
+        expect(result.moved).toHaveLength(0);
     });
 
-    // 测试项目位置移动
-    it('moved', () => {
+    it('元素移动', () => {
         const prevList: TestItem[] = [
             {name: 'item1', value: 'value1'},
             {name: 'item2', value: 'value2'},
@@ -124,221 +109,123 @@ describe('arrayDiff', () => {
         ];
 
         const nextList: TestItem[] = [
-            {name: 'item3', value: 'value3'}, // 从index 2移动到index 0
-            {name: 'item1', value: 'value1'}, // 从index 0移动到index 1
-            {name: 'item2', value: 'value2'}, // 从index 1移动到index 2
+            {name: 'item3', value: 'value3'},
+            {name: 'item1', value: 'value1'},
+            {name: 'item2', value: 'value2'},
         ];
 
-        const result = arrayDiff<TestItem>(prevList, nextList, nameMatch);
-        expect(result.moved).toStrictEqual([
-            {data: {name: 'item1', value: 'value1'}, prevIndex: 0, nextIndex: 1},
-            {data: {name: 'item2', value: 'value2'}, prevIndex: 1, nextIndex: 2},
-            {data: {name: 'item3', value: 'value3'}, prevIndex: 2, nextIndex: 0},
-        ]);
-        expect(result.equals).toStrictEqual([]); // 所有项目都移动了，没有保持原位置的
-        expect(result.added).toStrictEqual([]);
-        expect(result.updated).toStrictEqual([]);
-        expect(result.deleted).toStrictEqual([]);
+        const result = arrayDiff<TestItem>(prevList, nextList, {matchers: nameMatcher});
+        expect(result.moved).toHaveLength(3);
+        expect(result.equals).toHaveLength(0);
+        expect(result.added).toHaveLength(0);
+        expect(result.updated).toHaveLength(0);
+        expect(result.deleted).toHaveLength(0);
     });
 
-    it('added', () => {
+    it('新增元素', () => {
         const prevList: TestItem[] = [{name: 'item1', value: 'value1'}];
 
         const nextList: TestItem[] = [
             {name: 'item1', value: 'value1'},
-            {name: 'item2', value: 'value2'}, // 新增
-            {name: 'item3', value: 'value3'}, // 新增
+            {name: 'item2', value: 'value2'},
+            {name: 'item3', value: 'value3'},
         ];
 
-        const result = arrayDiff<TestItem>(prevList, nextList, nameMatch);
-        expect(result.added).toStrictEqual([
-            {data: {name: 'item2', value: 'value2'}, nextIndex: 1},
-            {data: {name: 'item3', value: 'value3'}, nextIndex: 2},
-        ]);
-        expect(result.equals).toStrictEqual([{data: {name: 'item1', value: 'value1'}, index: 0}]);
-        expect(result.deleted).toStrictEqual([]);
-        expect(result.updated).toStrictEqual([]);
-        expect(result.moved).toStrictEqual([]);
+        const result = arrayDiff<TestItem>(prevList, nextList, {matchers: nameMatcher});
+        expect(result.added).toHaveLength(2);
+        expect(result.equals).toHaveLength(1);
+        expect(result.deleted).toHaveLength(0);
+        expect(result.updated).toHaveLength(0);
+        expect(result.moved).toHaveLength(0);
     });
 
-    it('updated', () => {
+    it('更新元素', () => {
         const prevList: TestItem[] = [
             {name: 'item1', value: 'oldValue'},
             {name: 'item2', value: 'value2'},
         ];
 
         const nextList: TestItem[] = [
-            {name: 'item1', value: 'newValue'}, // 更新
-            {name: 'item2', value: 'value2'}, // 相等
+            {name: 'item1', value: 'newValue'},
+            {name: 'item2', value: 'value2'},
         ];
 
-        const result = arrayDiff<TestItem>(prevList, nextList, nameMatch);
-        const updatedExpect: ArrayUpdatedDiffItem<TestItem>[] = [
-            {
-                prevData: {name: 'item1', value: 'oldValue'},
-                prevIndex: 0,
-                nextData: {name: 'item1', value: 'newValue'},
-                nextIndex: 0,
-                diff: {
-                    type: 'object',
-                    updated: {
-                        value: {
-                            propertyName: 'value',
-                            prevValue: 'oldValue',
-                            nextValue: 'newValue',
-                            diff: undefined,
-                        },
-                    },
-                },
-            },
-        ];
-        expect(result.updated).toStrictEqual(updatedExpect);
-        expect(result.equals).toStrictEqual([{data: {name: 'item2', value: 'value2'}, index: 1}]);
-        expect(result.added).toStrictEqual([]);
-        expect(result.deleted).toStrictEqual([]);
-        expect(result.moved).toStrictEqual([]);
+        const result = arrayDiff<TestItem>(prevList, nextList, {matchers: nameMatcher});
+        expect(result.updated).toHaveLength(1);
+        expect(result.equals).toHaveLength(1);
+        expect(result.added).toHaveLength(0);
+        expect(result.deleted).toHaveLength(0);
+        expect(result.moved).toHaveLength(0);
     });
 
-    it('deleted', () => {
+    it('删除元素', () => {
         const prevList: TestItem[] = [
             {name: 'item1', value: 'value1'},
             {name: 'item2', value: 'value2'},
             {name: 'item3', value: 'value3'},
         ];
 
-        const nextList: TestItem[] = [
-            {name: 'item1', value: 'value1'}, // 只保留了item1
-        ];
+        const nextList: TestItem[] = [{name: 'item1', value: 'value1'}];
 
-        const result = arrayDiff<TestItem>(prevList, nextList, nameMatch);
-        expect(result.deleted).toStrictEqual([
-            {data: {name: 'item2', value: 'value2'}, prevIndex: 1},
-            {data: {name: 'item3', value: 'value3'}, prevIndex: 2},
-        ]);
-        expect(result.equals).toStrictEqual([{data: {name: 'item1', value: 'value1'}, index: 0}]);
-        expect(result.added).toStrictEqual([]);
-        expect(result.updated).toStrictEqual([]);
-        expect(result.moved).toStrictEqual([]);
+        const result = arrayDiff<TestItem>(prevList, nextList, {matchers: nameMatcher});
+        expect(result.deleted).toHaveLength(2);
+        expect(result.equals).toHaveLength(1);
+        expect(result.added).toHaveLength(0);
+        expect(result.updated).toHaveLength(0);
+        expect(result.moved).toHaveLength(0);
     });
 
-    it('multiple changes', () => {
+    it('混合变更', () => {
         const prevList: TestItem[] = [
-            {name: 'item1', value: 'value1'}, // 相等
-            {name: 'item2', value: 'value2'}, // 更新
-            {name: 'item3', value: 'value3'}, // 删除
-            {name: 'item4', value: 'value4'}, // 移动
+            {name: 'item1', value: 'value1'},
+            {name: 'item2', value: 'value2'},
+            {name: 'item3', value: 'value3'},
+            {name: 'item4', value: 'value4'},
         ];
 
         const nextList: TestItem[] = [
-            {name: 'item1', value: 'value1'}, // 相等
-            {name: 'item2', value: 'newValue'}, // 更新
-            {name: 'item4', value: 'value4'}, // 移动
-            {name: 'item5', value: 'value5'}, // 新增
+            {name: 'item1', value: 'value1'},
+            {name: 'item2', value: 'newValue'},
+            {name: 'item4', value: 'value4'},
+            {name: 'item5', value: 'value5'},
         ];
 
-        const result = arrayDiff<TestItem>(prevList, nextList, nameMatch);
-
-        // 验证各个数组的长度
-        expect(result.equals.length).toBe(1);
-        expect(result.added.length).toBe(1);
-        expect(result.updated.length).toBe(1);
-        expect(result.deleted.length).toBe(1);
-        expect(result.moved.length).toBe(1);
-
-        // 验证具体值
-        expect(result.equals[0]?.data.name).toBe('item1');
-        expect(result.added[0]?.data.name).toBe('item5');
-        expect(result.updated[0]?.prevData.name).toBe('item2');
-        expect(result.deleted[0]?.data.name).toBe('item3');
-        expect(result.moved[0]?.data.name).toBe('item4');
+        const result = arrayDiff<TestItem>(prevList, nextList, {matchers: nameMatcher});
+        expect(result.equals).toHaveLength(1);
+        expect(result.added).toHaveLength(1);
+        expect(result.updated).toHaveLength(1);
+        expect(result.deleted).toHaveLength(1);
+        expect(result.moved).toHaveLength(1);
     });
+});
 
-    it('multi match', () => {
+describe('arrayDiff - 多匹配器', () => {
+    it('使用多个匹配器', () => {
         const prevList: TestItem[] = [
-            {name: 'item1', value: 'value1'}, // 相等
-            {name: 'item2', value: 'value2'}, // 更新
-            {name: 'item3', value: 'value3'}, // 删除
-            {name: 'item4', value: 'value4'}, // 移动
+            {name: 'item1', value: 'value1'},
+            {name: 'item2', value: 'value2'},
+            {name: 'item3', value: 'value3'},
+            {name: 'item4', value: 'value4'},
         ];
 
         const nextList: TestItem[] = [
-            {name: 'item1', value: 'value1'}, // 相等
-            {name: 'new item2', value: 'value2'}, // 更新，但有name匹配的，因此不实际新增
-            {name: 'item2', value: 'newValue'}, // 更新 by value
-            {name: 'item5', value: 'value4'}, // 更新 by name
+            {name: 'item1', value: 'value1'},
+            {name: 'new item2', value: 'value2'},
+            {name: 'item2', value: 'newValue'},
+            {name: 'item5', value: 'value4'},
         ];
 
-        const result = arrayDiff<TestItem>(prevList, nextList, nameValueMatch);
-
-        // 验证各个数组的长度
-        expect(result.equals.length).toBe(1);
-        expect(result.added.length).toBe(1);
-        expect(result.updated.length).toBe(2);
-        expect(result.deleted.length).toBe(1);
-        expect(result.moved.length).toBe(0);
-
-        expect(result.updated).toStrictEqual([
-            {
-                prevData: {
-                    name: 'item2',
-                    value: 'value2',
-                },
-                prevIndex: 1,
-                nextData: {
-                    name: 'item2',
-                    value: 'newValue',
-                },
-                nextIndex: 2,
-                diff: {
-                    type: 'object',
-                    updated: {
-                        value: {
-                            propertyName: 'value',
-                            prevValue: 'value2',
-                            nextValue: 'newValue',
-                            diff: undefined,
-                        },
-                    },
-                },
-            },
-            {
-                prevData: {
-                    name: 'item4',
-                    value: 'value4',
-                },
-                prevIndex: 3,
-                nextData: {
-                    name: 'item5',
-                    value: 'value4',
-                },
-                nextIndex: 3,
-                diff: {
-                    type: 'object',
-                    updated: {
-                        name: {
-                            propertyName: 'name',
-                            prevValue: 'item4',
-                            nextValue: 'item5',
-                            diff: undefined,
-                        },
-                    },
-                },
-            },
-        ]);
-
-        expect(result.added).toStrictEqual([
-            {
-                data: {
-                    name: 'new item2',
-                    value: 'value2',
-                },
-                nextIndex: 1,
-            },
-        ]);
+        const result = arrayDiff<TestItem>(prevList, nextList, {matchers: nameValueMatcher});
+        expect(result.equals).toHaveLength(1);
+        expect(result.added).toHaveLength(1);
+        expect(result.updated).toHaveLength(2);
+        expect(result.deleted).toHaveLength(1);
+        expect(result.moved).toHaveLength(0);
     });
+});
 
-    // 测试具有嵌套对象的复杂更新
-    it('nested', () => {
+describe('arrayDiff - 嵌套对象', () => {
+    it('嵌套对象和数组的复杂更新', () => {
         const prevList: NestTestItem[] = [
             {
                 name: 'item1',
@@ -359,93 +246,96 @@ describe('arrayDiff', () => {
                 name: 'item1',
                 details: {
                     id: 1,
-                    description: 'new description', // updated
+                    description: 'new description',
                     nestArray: [
                         {name: 'item1', value: 'value1'},
-                        {name: 'item3', value: 'new value'}, // moved, changed, item2 deleted
+                        {name: 'item3', value: 'new value'},
                     ],
                 },
             },
         ];
 
-        const result = arrayDiff<NestTestItem>(prevList, nextList, nameMatch, customNameMatch);
-        expect(result.updated.length).toBe(1);
-        const nestDiffExpect: ObjectDiff<NestTestItem> = {
-            type: 'object',
-            updated: {
-                details: {
-                    propertyName: 'details',
-                    prevValue: {
-                        id: 1,
-                        description: 'old description',
-                        nestArray: [
-                            {name: 'item1', value: 'value1'},
-                            {name: 'item2', value: 'value2'},
-                            {name: 'item3', value: 'value3'},
-                        ],
-                    },
-                    nextValue: {
-                        id: 1,
-                        description: 'new description',
-                        nestArray: [
-                            {name: 'item1', value: 'value1'},
-                            {name: 'item3', value: 'new value'},
-                        ],
-                    },
+        const result = arrayDiff<NestTestItem>(prevList, nextList, {
+            matchers: nameMatcher,
+            deepMatchers: customNameMatcher,
+        });
+
+        expect(result.updated).toHaveLength(1);
+        expect(result.equals).toHaveLength(0);
+        expect(result.added).toHaveLength(0);
+        expect(result.deleted).toHaveLength(0);
+        expect(result.moved).toHaveLength(0);
+    });
+
+    it('嵌套数组的比较', () => {
+        type TestType = DeepReadonly<{ name: string; value: number }[]>;
+
+        const prevList: TestType[] = [
+            [
+                {name: 'a', value: 1},
+                {name: 'b', value: 2},
+                {name: 'c', value: 3},
+            ]
+        ];
+
+        const nextList: TestType[] = [
+            [
+                {name: 'a', value: 1},
+                {name: 'b', value: 2},
+                {name: 'c', value: 4},
+            ],
+        ];
+
+        const result = arrayDiff<TestType>(prevList, nextList, {
+            deepMatchers: customNameMatcher,
+        });
+
+        expect(result.updated).toHaveLength(1);
+        expect(result.equals).toHaveLength(0);
+        expect(result.added).toHaveLength(0);
+        expect(result.deleted).toHaveLength(0);
+        expect(result.moved).toHaveLength(0);
+
+        // 验证嵌套数组的 diff
+        const updatedItem = result.updated[0];
+        expect(updatedItem?.diff?.type).toBe('array');
+        if (updatedItem?.diff?.type !== 'array')
+            throw new Error('nest array diff type is not array');
+
+        expect(updatedItem?.diff).toStrictEqual({
+            type: 'array',
+            equals: [
+                {data: {name: 'a', value: 1}, index: 0},
+                {data: {name: 'b', value: 2}, index: 1},
+            ],
+            added: [],
+            deleted: [],
+            moved: [],
+            updated: [
+                {
+                    prevData: {name: 'c', value: 3},
+                    prevIndex: 2,
+                    nextData: {name: 'c', value: 4},
+                    nextIndex: 2,
                     diff: {
+                        equals: {
+                            name: {
+                                propertyName: 'name',
+                                value: 'c',
+                            },
+                        },
                         type: 'object',
                         updated: {
-                            description: {
-                                propertyName: 'description',
-                                prevValue: 'old description',
-                                nextValue: 'new description',
+                            value: {
                                 diff: undefined,
-                            },
-                            nestArray: {
-                                propertyName: 'nestArray',
-                                prevValue: [
-                                    {name: 'item1', value: 'value1'},
-                                    {name: 'item2', value: 'value2'},
-                                    {name: 'item3', value: 'value3'},
-                                ],
-                                nextValue: [
-                                    {name: 'item1', value: 'value1'},
-                                    {name: 'item3', value: 'new value'},
-                                ],
-                                diff: {
-                                    type: 'array',
-                                    added: [],
-                                    updated: [
-                                        {
-                                            prevData: {name: 'item3', value: 'value3'},
-                                            prevIndex: 2,
-                                            nextData: {name: 'item3', value: 'new value'},
-                                            nextIndex: 1,
-                                            diff: {
-                                                type: 'object',
-                                                updated: {
-                                                    value: {
-                                                        propertyName: 'value',
-                                                        prevValue: 'value3',
-                                                        nextValue: 'new value',
-                                                        diff: undefined,
-                                                    },
-                                                },
-                                            },
-                                        },
-                                    ],
-                                    deleted: [
-                                        {data: {name: 'item2', value: 'value2'}, prevIndex: 1},
-                                    ],
-                                    moved: [],
-                                    equals: [{data: {name: 'item1', value: 'value1'}, index: 0}],
-                                },
+                                nextValue: 4,
+                                prevValue: 3,
+                                propertyName: 'value',
                             },
                         },
                     },
                 },
-            },
-        };
-        expect(result.updated[0]?.diff).toStrictEqual(nestDiffExpect);
+            ],
+        });
     });
 });

@@ -1,14 +1,18 @@
-import {objectDiff} from './objectDiff';
-import {deepEquals} from './deepEquals';
+import {type DiffMatcher} from "./type/DiffMatcher";
+import type {ArrayDiffOptions} from './type/DiffOptions';
 import type {ArrayDiff, CircularReferenceDiff, ObjectDiff} from './type/DiffItem';
+import {deepEquals} from './deepEquals';
+import {_objectDiff} from './objectDiff';
+import {checkIsDiffRecord} from "./checkIsDiffRecord";
 
-export const arrayDiff = <T extends Record<string, unknown>>(
+export const _arrayDiff = <T>(
     prevList: ReadonlyArray<T> | undefined | null,
     nextList: ReadonlyArray<T> | undefined | null,
-    matchFnList: ((a: T, b: T) => boolean)[],
-    deepMatchFnList: ((a: any, b: any) => boolean)[] = [deepEquals],
-    visitedOld: WeakSet<object> = new WeakSet<object>(),
-    visitedNew: WeakSet<object> = new WeakSet<object>(),
+    matchers: DiffMatcher<T>[],
+    deepMatchers: DiffMatcher[],
+    depth: number,
+    visitedPrev: WeakSet<object>,
+    visitedNext: WeakSet<object>,
 ): ArrayDiff<T> => {
     const result: ArrayDiff<T> = {
         type: 'array',
@@ -42,66 +46,73 @@ export const arrayDiff = <T extends Record<string, unknown>>(
 
     const prevWithIndexSet = new Set(prevList.map((item, index) => ({item, index})));
     const nextWithIndexSet = new Set(nextList.map((item, index) => ({item, index})));
+    visitedPrev.add(prevList);
+    visitedNext.add(nextList);
 
-    for (const fn of matchFnList) {
+    for (const matcher of matchers) {
         for (const prev of prevWithIndexSet) {
             const {item: prevItem, index: prevIndex} = prev;
 
             let matchedNext: {item: T; index: number} | undefined = undefined;
             for (const next of nextWithIndexSet) {
-                if (fn(prevItem, next.item)) matchedNext = next;
+                if (matcher(prevItem, next.item, prevIndex, next.index)) matchedNext = next;
             }
-            if (matchedNext !== undefined) {
-                const {item: nextItem, index: nextIndex} = matchedNext;
+            if (matchedNext === undefined) continue;
 
-                if (deepEquals(prevItem, nextItem)) {
-                    if (prevIndex === nextIndex) {
-                        result.equals.push({
-                            data: nextItem,
-                            index: nextIndex,
-                        });
-                    } else {
-                        result.moved.push({
-                            data: nextItem,
-                            prevIndex: prevIndex,
-                            nextIndex: nextIndex,
-                        });
-                    }
+            const {item: nextItem, index: nextIndex} = matchedNext;
+
+            if (deepEquals(prevItem, nextItem)) {
+                if (prevIndex === nextIndex) {
+                    result.equals.push({
+                        data: nextItem,
+                        index: nextIndex,
+                    });
                 } else {
-                    let diff: ObjectDiff<any> | ArrayDiff<any> | CircularReferenceDiff | undefined =
-                        undefined;
-
-                    if (Array.isArray(prevItem) && Array.isArray(nextItem)) {
-                        diff = arrayDiff(prevItem, nextItem, deepMatchFnList, deepMatchFnList);
-                    } else if (
-                        prevItem !== null &&
-                        nextItem !== null &&
-                        prevItem !== undefined &&
-                        nextItem !== undefined &&
-                        typeof prevItem === 'object' &&
-                        typeof nextItem === 'object'
-                    ) {
-                        diff = objectDiff(
-                            prevItem,
-                            nextItem,
-                            deepMatchFnList,
-                            visitedOld,
-                            visitedNew,
-                        );
-                    }
-
-                    result.updated.push({
-                        prevData: prevItem,
+                    result.moved.push({
+                        data: nextItem,
                         prevIndex: prevIndex,
-                        nextData: nextItem,
                         nextIndex: nextIndex,
-                        diff: diff as any,
                     });
                 }
+            } else {
+                let diff: ObjectDiff<any> | ArrayDiff<any> | CircularReferenceDiff | undefined =
+                    undefined;
 
-                prevWithIndexSet.delete(prev);
-                nextWithIndexSet.delete(matchedNext);
+                if (Array.isArray(prevItem) && Array.isArray(nextItem)) {
+                    diff = _arrayDiff(
+                        prevItem,
+                        nextItem,
+                        deepMatchers,
+                        deepMatchers,
+                        depth - 1,
+                        visitedPrev,
+                        visitedNext,
+                    );
+                } else if (
+                    checkIsDiffRecord(prevItem) &&
+                    checkIsDiffRecord(nextItem)
+                ) {
+                    diff = _objectDiff(
+                        prevItem,
+                        nextItem,
+                        deepMatchers,
+                        depth - 1,
+                        visitedPrev,
+                        visitedNext,
+                    );
+                }
+
+                result.updated.push({
+                    prevData: prevItem,
+                    prevIndex: prevIndex,
+                    nextData: nextItem,
+                    nextIndex: nextIndex,
+                    diff: diff as any,
+                });
             }
+
+            prevWithIndexSet.delete(prev);
+            nextWithIndexSet.delete(matchedNext);
         }
     }
 
@@ -113,4 +124,16 @@ export const arrayDiff = <T extends Record<string, unknown>>(
     });
 
     return result;
+};
+
+export const arrayDiff = <T>(
+    prevList: ReadonlyArray<T> | undefined | null,
+    nextList: ReadonlyArray<T> | undefined | null,
+    options?: ArrayDiffOptions<T> | undefined | null,
+): ArrayDiff<T> => {
+    const matchers = options?.matchers ?? [(_a, _b, aIndex, bIndex) => aIndex === bIndex];
+    const deepMatchers = options?.deepMatchers ?? [deepEquals];
+    const depth = options?.depth ?? -1;
+
+    return _arrayDiff(prevList, nextList, matchers, deepMatchers, depth, new WeakSet(), new WeakSet());
 };

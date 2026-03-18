@@ -82,4 +82,10 @@ describe('deepEquals', () => {
         expect(deepEquals({}, {})).toBe(true);
         expect(deepEquals([], [])).toBe(true);
     });
+
+    it('object with missing key', () => {
+        const obj1 = {a: 1, b: 2};
+        const obj2 = {a: 1, c: 2};
+        expect(deepEquals(obj1, obj2)).toBe(false);
+    });
 });

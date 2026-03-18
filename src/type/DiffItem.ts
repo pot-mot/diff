@@ -1,25 +1,27 @@
+import {DiffRecord} from "./DiffRecord";
+
 export type CircularReferenceDiff = {
     type: 'circular reference';
 };
 
-export type ObjectDiff<T extends Record<string, unknown>, U extends Record<string, unknown> = T> = {
+export type ObjectDiff<T extends DiffRecord, U extends DiffRecord = T> = {
     type: 'object';
-    // 属性更新（现有属性的值变化）
+    equals?: {
+        [K in keyof T & keyof U]?: PropertyEqualsDiffItem<T, K>;
+    };
     updated?: {
         [K in keyof T & keyof U]?: PropertyUpdatedDiffItem<T, U, K>;
     };
-    // 属性添加（U 中有但 T 中没有的属性）
     added?: {
         [K in Exclude<keyof U, keyof T>]?: PropertyAddedDiffItem<U, K>;
     };
-    // 属性删除（T 中有但 U 中没有的属性）
     deleted?: {
         [K in Exclude<keyof T, keyof U>]?: PropertyDeletedDiffItem<T, K>;
     };
 };
 
 export type PropertyAddedDiffItem<
-    T extends Record<string, unknown>,
+    T extends DiffRecord,
     K extends keyof T = keyof T,
 > = {
     propertyName: K;
@@ -27,7 +29,15 @@ export type PropertyAddedDiffItem<
 };
 
 export type PropertyDeletedDiffItem<
-    T extends Record<string, unknown>,
+    T extends DiffRecord,
+    K extends keyof T = keyof T,
+> = {
+    propertyName: K;
+    value: T[K];
+};
+
+export type PropertyEqualsDiffItem<
+    T extends DiffRecord,
     K extends keyof T = keyof T,
 > = {
     propertyName: K;
@@ -35,8 +45,8 @@ export type PropertyDeletedDiffItem<
 };
 
 export type PropertyUpdatedDiffItem<
-    T extends Record<string, unknown>,
-    U extends Record<string, unknown> = T,
+    T extends DiffRecord,
+    U extends DiffRecord = T,
     K extends keyof T & keyof U = keyof T & keyof U,
 > = {
     propertyName: K;
@@ -44,7 +54,7 @@ export type PropertyUpdatedDiffItem<
     nextValue: U[K];
     diff?: T[K] & U[K] extends Array<infer Item> | ReadonlyArray<infer Item>
         ? ArrayDiff<Item>
-        : T[K] & U[K] extends Record<string, unknown>
+        : T[K] & U[K] extends DiffRecord
           ? ObjectDiff<T[K] & U[K], T[K] & U[K]> | CircularReferenceDiff
           : never;
 };
@@ -61,7 +71,7 @@ export type ArrayUpdatedDiffItem<T> = {
     nextIndex: number;
     diff: T extends Array<infer Item> | ReadonlyArray<infer Item>
         ? ArrayDiff<Item>
-        : T extends Record<string, unknown>
+        : T extends DiffRecord
           ? ObjectDiff<T> | CircularReferenceDiff
           : never;
 };

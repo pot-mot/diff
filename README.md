@@ -258,30 +258,45 @@ const result = objectDiff(obj1, obj2);
 
 ---
 
-### objectDiff<T, U>(oldVal: T | undefined | null, newVal: U | undefined | null, deepMatchFnList?: Function[]): ObjectDiff | CircularReferenceDiff
+### objectDiff<T, U>(oldVal: T | undefined | null, newVal: U | undefined | null, options?: DiffOptions): ObjectDiff | CircularReferenceDiff
 
 比较两个对象的差异。
 
 **参数：**
-- `oldVal` - 原始对象
-- `newVal` - 新对象
-- `deepMatchFnList` - 可选，自定义深度比较函数列表，默认匹配函数为`deepEquals`
+- `oldVal` - 原始对象，可以为 `undefined` 或 `null`
+- `newVal` - 新对象，可以为 `undefined` 或 `null`
+- `options` - 可选，配置对象，包含以下属性：
+  - `depth` - 可选，递归深度限制，默认为 `-1`（无限制）
+  - `deepMatchers` - 可选，自定义深度比较函数列表，默认为 `[deepEquals]`
 
-**返回：** `ObjectDiff | CircularReferenceDiff` - 差异结果对象
+**返回：** `ObjectDiff | CircularReferenceDiff` - 差异结果对象，可能包含以下属性：
+- `type` - 类型为 `'object'` 或 `'circular reference'`
+- `added` - 新增的属性集合
+- `deleted` - 删除的属性集合
+- `updated` - 更新的属性集合
+- `equals` - 未变化的属性集合
 
 ---
 
-### arrayDiff<T>(prevList: T[], nextList: T[], matchFnList: Function[], deepMatchFnList?: Function[]): ArrayDiff
+### arrayDiff<T>(prevList: ReadonlyArray<T> | undefined | null, nextList: ReadonlyArray<T> | undefined | null, options?: ArrayDiffOptions<T>): ArrayDiff
 
 比较两个数组的差异。
 
 **参数：**
-- `prevList` - 原始数组
-- `nextList` - 新数组
-- `matchFnList` - 匹配函数列表，用于识别同一元素
-- `deepMatchFnList` - 可选，自定义深度比较函数列表，默认匹配函数为`deepEquals`
+- `prevList` - 原始数组，可以为 `undefined` 或 `null`
+- `nextList` - 新数组，可以为 `undefined` 或 `null`
+- `options` - 可选，配置对象，包含以下属性：
+  - `depth` - 可选，递归深度限制，默认为 `-1`（无限制）
+  - `matchers` - 可选，匹配函数列表，用于识别同一元素，默认为 `[(a, b, aIndex, bIndex) => aIndex === bIndex]`
+  - `deepMatchers` - 可选，自定义深度比较函数列表，默认为 `[deepEquals]`
 
-**返回：** `ArrayDiff` - 差异结果对象，包含 `added`、`updated`、`deleted`、`moved`、`equals` 数组
+**返回：** `ArrayDiff` - 差异结果对象，包含以下属性：
+- `type` - 类型为 `'array'`
+- `added` - 新增的元素数组
+- `updated` - 更新的元素数组
+- `deleted` - 删除的元素数组
+- `moved` - 移动位置的元素数组
+- `equals` - 未变化的元素数组
 
 ## 许可证
 
