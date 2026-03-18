@@ -10,7 +10,7 @@ export const _arrayDiff = <T>(
     nextList: ReadonlyArray<T> | undefined | null,
     matchers: DiffMatcher<T>[],
     deepMatchers: DiffMatcher[],
-    depth: number,
+    depth: number | undefined | null,
     visitedPrev: WeakSet<object>,
     visitedNext: WeakSet<object>,
 ): ArrayDiff<T> => {
@@ -49,6 +49,12 @@ export const _arrayDiff = <T>(
     visitedPrev.add(prevList);
     visitedNext.add(nextList);
 
+    const shouldDeepDiff =
+        depth === undefined ||
+        depth === null ||
+        depth > 0;
+    const nextDepth = typeof depth === 'number' ? depth - 1 : undefined;
+
     for (const matcher of matchers) {
         for (const prev of prevWithIndexSet) {
             const {item: prevItem, index: prevIndex} = prev;
@@ -78,28 +84,30 @@ export const _arrayDiff = <T>(
                 let diff: ObjectDiff<any> | ArrayDiff<any> | CircularReferenceDiff | undefined =
                     undefined;
 
-                if (Array.isArray(prevItem) && Array.isArray(nextItem)) {
-                    diff = _arrayDiff(
-                        prevItem,
-                        nextItem,
-                        deepMatchers,
-                        deepMatchers,
-                        depth - 1,
-                        visitedPrev,
-                        visitedNext,
-                    );
-                } else if (
-                    checkIsDiffRecord(prevItem) &&
-                    checkIsDiffRecord(nextItem)
-                ) {
-                    diff = _objectDiff(
-                        prevItem,
-                        nextItem,
-                        deepMatchers,
-                        depth - 1,
-                        visitedPrev,
-                        visitedNext,
-                    );
+                if (shouldDeepDiff) {
+                    if (Array.isArray(prevItem) && Array.isArray(nextItem)) {
+                        diff = _arrayDiff(
+                            prevItem,
+                            nextItem,
+                            deepMatchers,
+                            deepMatchers,
+                            nextDepth,
+                            visitedPrev,
+                            visitedNext,
+                        );
+                    } else if (
+                        checkIsDiffRecord(prevItem) &&
+                        checkIsDiffRecord(nextItem)
+                    ) {
+                        diff = _objectDiff(
+                            prevItem,
+                            nextItem,
+                            deepMatchers,
+                            nextDepth,
+                            visitedPrev,
+                            visitedNext,
+                        );
+                    }
                 }
 
                 result.updated.push({
@@ -133,7 +141,7 @@ export const arrayDiff = <T>(
 ): ArrayDiff<T> => {
     const matchers = options?.matchers ?? [(_a, _b, aIndex, bIndex) => aIndex === bIndex];
     const deepMatchers = options?.deepMatchers ?? [deepEquals];
-    const depth = options?.depth ?? -1;
+    const depth = options?.depth;
 
     return _arrayDiff(prevList, nextList, matchers, deepMatchers, depth, new WeakSet(), new WeakSet());
 };

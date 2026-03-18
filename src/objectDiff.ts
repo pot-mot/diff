@@ -21,7 +21,7 @@ export const _objectDiff = <
     prevVal: T | undefined | null,
     nextVal: U | undefined | null,
     deepMatchers: DiffMatcher[],
-    depth: number,
+    depth: number | undefined | null,
     visitedPrev: WeakSet<object>,
     visitedNext: WeakSet<object>,
 ): ObjectDiff<T, U> | CircularReferenceDiff => {
@@ -111,6 +111,13 @@ export const _objectDiff = <
     // 检查属性更新
     const equals: {[K in keyof T & keyof U]?: PropertyEqualsDiffItem<T, K>} = {};
     const updated: {[K in keyof T & keyof U]?: PropertyUpdatedDiffItem<T, U, K>} = {};
+
+    const shouldDeepDiff =
+        depth === undefined ||
+        depth === null ||
+        depth > 0;
+    const nextDepth = typeof depth === 'number' ? depth - 1 : undefined;
+
     for (const key in prevVal) {
         if (key in nextVal) {
             if (deepEquals(prevVal[key], nextVal[key])) {
@@ -126,30 +133,31 @@ export const _objectDiff = <
                 let diff: ObjectDiff<any> | ArrayDiff<any> | CircularReferenceDiff | undefined =
                     undefined;
 
-                // 检查是否为数组
-                if (Array.isArray(prevValue) && Array.isArray(nextValue)) {
-                    diff = _arrayDiff(
-                        prevValue,
-                        nextValue,
-                        deepMatchers,
-                        deepMatchers,
-                        depth - 1,
-                        visitedPrev,
-                        visitedNext,
-                    );
-                } else if (
-                    checkIsDiffRecord(prevValue) &&
-                    checkIsDiffRecord(nextValue)
-                ) {
-                    // 传递已访问的 WeakMap 以处理嵌套对象的循环引用
-                    diff = _objectDiff(
-                        prevValue,
-                        nextValue,
-                        deepMatchers,
-                        depth - 1,
-                        visitedPrev,
-                        visitedNext,
-                    );
+                if (shouldDeepDiff) {
+                    if (Array.isArray(prevValue) && Array.isArray(nextValue)) {
+                        diff = _arrayDiff(
+                            prevValue,
+                            nextValue,
+                            deepMatchers,
+                            deepMatchers,
+                            nextDepth,
+                            visitedPrev,
+                            visitedNext,
+                        );
+                    } else if (
+                        checkIsDiffRecord(prevValue) &&
+                        checkIsDiffRecord(nextValue)
+                    ) {
+                        // 传递已访问的 WeakMap 以处理嵌套对象的循环引用
+                        diff = _objectDiff(
+                            prevValue,
+                            nextValue,
+                            deepMatchers,
+                            nextDepth,
+                            visitedPrev,
+                            visitedNext,
+                        );
+                    }
                 }
 
                 updated[key] = {
@@ -180,7 +188,7 @@ export const objectDiff = <
     options?: DiffOptions | undefined | null,
 ): ObjectDiff<T, U> | CircularReferenceDiff => {
     const deepMatchers = options?.deepMatchers ?? [deepEquals];
-    const depth = options?.depth ?? -1;
+    const depth = options?.depth;
 
     return _objectDiff(prevVal, nextVal, deepMatchers, depth, new WeakSet(), new WeakSet());
 };

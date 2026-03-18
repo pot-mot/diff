@@ -266,7 +266,7 @@ const result = objectDiff(obj1, obj2);
 - `oldVal` - 原始对象，可以为 `undefined` 或 `null`
 - `newVal` - 新对象，可以为 `undefined` 或 `null`
 - `options` - 可选，配置对象，包含以下属性：
-  - `depth` - 可选，递归深度限制，默认为 `-1`（无限制）
+  - `depth` - 可选，递归深度限制
   - `deepMatchers` - 可选，自定义深度比较函数列表，默认为 `[deepEquals]`
 
 **返回：** `ObjectDiff | CircularReferenceDiff` - 差异结果对象，可能包含以下属性：
@@ -286,7 +286,7 @@ const result = objectDiff(obj1, obj2);
 - `prevList` - 原始数组，可以为 `undefined` 或 `null`
 - `nextList` - 新数组，可以为 `undefined` 或 `null`
 - `options` - 可选，配置对象，包含以下属性：
-  - `depth` - 可选，递归深度限制，默认为 `-1`（无限制）
+  - `depth` - 可选，递归深度限制
   - `matchers` - 可选，匹配函数列表，用于识别同一元素，默认为 `[(a, b, aIndex, bIndex) => aIndex === bIndex]`
   - `deepMatchers` - 可选，自定义深度比较函数列表，默认为 `[deepEquals]`
 

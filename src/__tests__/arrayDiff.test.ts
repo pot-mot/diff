@@ -1,4 +1,4 @@
-import {describe, it, expect} from 'vitest';
+import {describe, it, expect, assert} from 'vitest';
 import {arrayDiff} from '../arrayDiff';
 import type {DeepReadonly} from '../type/DeepReadonly';
 import type {ArrayDiff} from '../type/DiffItem';
@@ -299,9 +299,7 @@ describe('arrayDiff - 嵌套对象', () => {
         // 验证嵌套数组的 diff
         const updatedItem = result.updated[0];
         expect(updatedItem?.diff?.type).toBe('array');
-        if (updatedItem?.diff?.type !== 'array')
-            throw new Error('nest array diff type is not array');
-
+        assert(updatedItem?.diff?.type === 'array')
         expect(updatedItem?.diff).toStrictEqual({
             type: 'array',
             equals: [
@@ -337,5 +335,239 @@ describe('arrayDiff - 嵌套对象', () => {
                 },
             ],
         });
+    });
+});
+
+describe('arrayDiff - depth参数', () => {
+    it('depth 为 0 时不进行深层比较', () => {
+        const prevList: TestItem[] = [
+            {name: 'item1', value: 'oldValue'},
+        ];
+
+        const nextList: TestItem[] = [
+            {name: 'item1', value: 'newValue'},
+        ];
+
+        const result = arrayDiff<TestItem>(prevList, nextList, {
+            matchers: nameMatcher,
+            depth: 0,
+        });
+
+        expect(result).toStrictEqual({
+            type: 'array',
+            equals: [],
+            added: [],
+            deleted: [],
+            moved: [],
+            updated: [
+                {
+                    prevData: {name: 'item1', value: 'oldValue'},
+                    prevIndex: 0,
+                    nextData: {name: 'item1', value: 'newValue'},
+                    nextIndex: 0,
+                    diff: undefined,
+                },
+            ],
+        });
+    });
+
+    it('depth 为 1 时进行一层深层比较', () => {
+        const prevList: TestItem[] = [
+            {name: 'item1', value: 'oldValue'},
+        ];
+
+        const nextList: TestItem[] = [
+            {name: 'item1', value: 'newValue'},
+        ];
+
+        const result = arrayDiff<TestItem>(prevList, nextList, {
+            matchers: nameMatcher,
+            depth: 1,
+        });
+
+        expect(result).toStrictEqual({
+            type: 'array',
+            equals: [],
+            added: [],
+            deleted: [],
+            moved: [],
+            updated: [
+                {
+                    prevData: {name: 'item1', value: 'oldValue'},
+                    prevIndex: 0,
+                    nextData: {name: 'item1', value: 'newValue'},
+                    nextIndex: 0,
+                    diff: {
+                        type: 'object',
+                        equals: {
+                            name: {
+                                propertyName: 'name',
+                                value: 'item1',
+                            },
+                        },
+                        updated: {
+                            value: {
+                                propertyName: 'value',
+                                prevValue: 'oldValue',
+                                nextValue: 'newValue',
+                                diff: undefined,
+                            },
+                        },
+                    },
+                },
+            ],
+        });
+    });
+
+    it('depth 为 2 时进行两层深层比较', () => {
+        type NestTestItem = {
+            name: string;
+            details: {
+                id: number;
+                value: number;
+            };
+        };
+
+        const prevList: NestTestItem[] = [
+            {name: 'item1', details: {id: 1, value: 1}},
+        ];
+
+        const nextList: NestTestItem[] = [
+            {name: 'item1', details: {id: 1, value: 2}},
+        ];
+
+        const result = arrayDiff<NestTestItem>(prevList, nextList, {
+            matchers: nameMatcher,
+            depth: 2,
+        });
+
+        expect(result.updated).toHaveLength(1);
+        const updatedItem = result.updated[0];
+        expect(updatedItem?.diff?.type).toBe('object');
+        assert(updatedItem?.diff?.type === 'object');
+        expect(updatedItem.diff.updated?.details?.diff).toStrictEqual({
+            type: 'object',
+            equals: {
+                id: {
+                    propertyName: 'id',
+                    value: 1,
+                },
+            },
+            updated: {
+                value: {
+                    propertyName: 'value',
+                    prevValue: 1,
+                    nextValue: 2,
+                    diff: undefined,
+                },
+            },
+        });
+    });
+
+    it('depth 不足时深层对象不展开 diff', () => {
+        type NestTestItem = {
+            name: string;
+            details: {
+                id: number;
+                nested: {
+                    value: number;
+                };
+            };
+        };
+
+        const prevList: NestTestItem[] = [
+            {name: 'item1', details: {id: 1, nested: {value: 1}}},
+        ];
+
+        const nextList: NestTestItem[] = [
+            {name: 'item1', details: {id: 1, nested: {value: 2}}},
+        ];
+
+        const result = arrayDiff<NestTestItem>(prevList, nextList, {
+            matchers: nameMatcher,
+            depth: 2,
+        });
+
+        expect(result.updated).toHaveLength(1);
+        const updatedItem = result.updated[0];
+        expect(updatedItem?.diff?.type).toBe('object');
+
+        // details 层应该有 diff，但 nested 层的 diff 应该为 undefined
+        assert(updatedItem?.diff?.type === 'object');
+        expect(updatedItem.diff.updated?.details?.diff?.type).toBe('object');
+        assert(updatedItem?.diff?.updated?.details?.diff?.type === 'object');
+        expect(updatedItem.diff.updated?.details?.diff?.updated?.nested?.diff).toBeUndefined();
+    });
+
+    it('depth 为 null/undefined 时进行无限深层比较', () => {
+        type DeepNestItem = {
+            name: string;
+            level1: {
+                level2: {
+                    level3: number;
+                };
+            };
+        };
+
+        const prevList: DeepNestItem[] = [
+            {name: 'item1', level1: {level2: {level3: 1}}},
+        ];
+
+        const nextList: DeepNestItem[] = [
+            {name: 'item1', level1: {level2: {level3: 2}}},
+        ];
+
+        const assertResult = (result: ArrayDiff<DeepNestItem>) => {
+            expect(result.updated).toHaveLength(1);
+            const updatedItem = result.updated[0];
+            expect(updatedItem?.diff?.type).toBe('object');
+            assert(updatedItem?.diff?.type === 'object');
+            assert(updatedItem?.diff?.updated?.level1?.diff?.type === 'object');
+            assert(updatedItem?.diff?.updated?.level1?.diff?.updated?.level2?.diff?.type === 'object');
+            expect(updatedItem.diff.updated?.level1?.diff?.updated?.level2?.diff?.updated?.level3).toBeDefined();
+        };
+
+        const nullResult = arrayDiff<DeepNestItem>(prevList, nextList, {
+            matchers: nameMatcher,
+            depth: null,
+        });
+        assertResult(nullResult);
+        const undefinedResult = arrayDiff<DeepNestItem>(prevList, nextList, {
+            matchers: nameMatcher,
+            depth: undefined,
+        });
+        assertResult(undefinedResult);
+    });
+
+    it('嵌套数组受 depth 限制', () => {
+        type ArrayNestItem = {
+            name: string;
+            items: {id: number}[];
+        };
+
+        const prevList: ArrayNestItem[] = [
+            {name: 'item1', items: [{id: 1}]},
+        ];
+
+        const nextList: ArrayNestItem[] = [
+            {name: 'item1', items: [{id: 2}]},
+        ];
+
+        const result = arrayDiff<ArrayNestItem>(prevList, nextList, {
+            matchers: nameMatcher,
+            depth: 2,
+            deepMatchers: customNameMatcher,
+        });
+
+        expect(result.updated).toHaveLength(1);
+        const updatedItem = result.updated[0];
+        assert(updatedItem?.diff?.type === 'object');
+        // items 数组层应该有 diff，但数组内部的元素比较不会继续展开
+        expect(updatedItem.diff.updated?.items?.diff?.type).toBe('array');
+        // 由于深度限制，数组内部的对象不会再进行深层比较
+        const itemsArrayDiff = updatedItem.diff.updated?.items?.diff;
+        assert(itemsArrayDiff?.type === 'array')
+        // 数组内的对象更新不会有 diff，因为深度已用完
+        expect(itemsArrayDiff.updated[0]?.diff).toBeUndefined();
     });
 });

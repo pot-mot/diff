@@ -422,3 +422,193 @@ describe('objectDiff - 自定义匹配器', () => {
         );
     });
 });
+
+describe('objectDiff - depth参数', () => {
+    it('depth 为 0 时不进行深层比较', () => {
+        const obj1 = {a: {b: 1}};
+        const obj2 = {a: {b: 2}};
+
+        const result = objectDiff(obj1, obj2, {depth: 0});
+
+        expect(result).toStrictEqual({
+            type: 'object',
+            updated: {
+                a: {
+                    propertyName: 'a',
+                    prevValue: {b: 1},
+                    nextValue: {b: 2},
+                    diff: undefined,
+                },
+            },
+        });
+    });
+
+    it('depth 为 1 时进行一层深层比较', () => {
+        const obj1 = {a: {b: 1}};
+        const obj2 = {a: {b: 2}};
+
+        const result = objectDiff(obj1, obj2, {depth: 1});
+
+        expect(result).toStrictEqual({
+            type: 'object',
+            updated: {
+                a: {
+                    propertyName: 'a',
+                    prevValue: {b: 1},
+                    nextValue: {b: 2},
+                    diff: {
+                        type: 'object',
+                        updated: {
+                            b: {
+                                propertyName: 'b',
+                                prevValue: 1,
+                                nextValue: 2,
+                                diff: undefined,
+                            },
+                        },
+                    },
+                },
+            },
+        });
+    });
+
+    it('depth 为 2 时进行两层深层比较', () => {
+        const obj1 = {a: {b: {c: 1}}};
+        const obj2 = {a: {b: {c: 2}}};
+
+        const result = objectDiff(obj1, obj2, {depth: 2});
+
+        expect(result).toStrictEqual({
+            type: 'object',
+            updated: {
+                a: {
+                    propertyName: 'a',
+                    prevValue: {b: {c: 1}},
+                    nextValue: {b: {c: 2}},
+                    diff: {
+                        type: 'object',
+                        updated: {
+                            b: {
+                                propertyName: 'b',
+                                prevValue: {c: 1},
+                                nextValue: {c: 2},
+                                diff: {
+                                    type: 'object',
+                                    updated: {
+                                        c: {
+                                            propertyName: 'c',
+                                            prevValue: 1,
+                                            nextValue: 2,
+                                            diff: undefined,
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        });
+    });
+
+    it('depth 不足时深层对象不展开 diff', () => {
+        const obj1 = {a: {b: {c: 1}}};
+        const obj2 = {a: {b: {c: 2}}};
+
+        const result = objectDiff(obj1, obj2, {depth: 1});
+
+        expect(result).toStrictEqual({
+            type: 'object',
+            updated: {
+                a: {
+                    propertyName: 'a',
+                    prevValue: {b: {c: 1}},
+                    nextValue: {b: {c: 2}},
+                    diff: {
+                        type: 'object',
+                        updated: {
+                            b: {
+                                propertyName: 'b',
+                                prevValue: {c: 1},
+                                nextValue: {c: 2},
+                                diff: undefined,
+                            },
+                        },
+                    },
+                },
+            },
+        });
+    });
+
+    it('depth 为 null/undefined 时进行无限深层比较', () => {
+        const obj1 = {a: {b: {c: {d: 1}}}};
+        const obj2 = {a: {b: {c: {d: 2}}}};
+
+        const excepted = {
+            type: 'object',
+            updated: {
+                a: {
+                    propertyName: 'a',
+                    prevValue: {b: {c: {d: 1}}},
+                    nextValue: {b: {c: {d: 2}}},
+                    diff: {
+                        type: 'object',
+                        updated: {
+                            b: {
+                                propertyName: 'b',
+                                prevValue: {c: {d: 1}},
+                                nextValue: {c: {d: 2}},
+                                diff: {
+                                    type: 'object',
+                                    updated: {
+                                        c: {
+                                            propertyName: 'c',
+                                            prevValue: {d: 1},
+                                            nextValue: {d: 2},
+                                            diff: {
+                                                type: 'object',
+                                                updated: {
+                                                    d: {
+                                                        propertyName: 'd',
+                                                        prevValue: 1,
+                                                        nextValue: 2,
+                                                        diff: undefined,
+                                                    },
+                                                },
+                                            },
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        }
+
+        const nullResult = objectDiff(obj1, obj2, {depth: null});
+        expect(nullResult).toStrictEqual(excepted);
+        const undefinedResult = objectDiff(obj1, obj2, {depth: undefined});
+        expect(undefinedResult).toStrictEqual(excepted);
+    });
+
+    it('嵌套数组受 depth 限制', () => {
+        const obj1 = {items: [{a: {b: 1}}]};
+        const obj2 = {items: [{a: {b: 2}}]};
+
+        const result = objectDiff(obj1, obj2, {
+            depth: 2,
+            deepMatchers: [() => true],
+        });
+
+        assert(result.type === 'object');
+        assert(result.updated?.items?.diff?.type === 'array');
+        assert(result.updated?.items?.diff?.updated?.[0]?.diff?.type === 'object');
+        expect(result.updated.items.diff.updated[0].diff.updated?.a).toStrictEqual({
+            propertyName: 'a',
+            prevValue: {b: 1},
+            nextValue: {b: 2},
+            diff: undefined,
+        });
+    });
+});
