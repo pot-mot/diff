@@ -1,4 +1,4 @@
-import {DiffRecord} from "./DiffRecord";
+import {DiffRecord} from './DiffRecord';
 
 export type CircularReferenceDiff = {
     type: 'circular reference';
@@ -20,26 +20,17 @@ export type ObjectDiff<T extends DiffRecord, U extends DiffRecord = T> = {
     };
 };
 
-export type PropertyAddedDiffItem<
-    T extends DiffRecord,
-    K extends keyof T = keyof T,
-> = {
+export type PropertyAddedDiffItem<T extends DiffRecord, K extends keyof T = keyof T> = {
     propertyName: K;
     value: T[K];
 };
 
-export type PropertyDeletedDiffItem<
-    T extends DiffRecord,
-    K extends keyof T = keyof T,
-> = {
+export type PropertyDeletedDiffItem<T extends DiffRecord, K extends keyof T = keyof T> = {
     propertyName: K;
     value: T[K];
 };
 
-export type PropertyEqualsDiffItem<
-    T extends DiffRecord,
-    K extends keyof T = keyof T,
-> = {
+export type PropertyEqualsDiffItem<T extends DiffRecord, K extends keyof T = keyof T> = {
     propertyName: K;
     value: T[K];
 };

@@ -1,5 +1,5 @@
-import type {DiffRecord} from "./type/DiffRecord";
-import type {DiffMatcher} from "./type/DiffMatcher";
+import type {DiffRecord} from './type/DiffRecord';
+import type {DiffMatcher} from './type/DiffMatcher';
 import type {DiffOptions} from './type/DiffOptions';
 import type {
     ArrayDiff,
@@ -12,12 +12,9 @@ import type {
 } from './type/DiffItem';
 import {deepEquals} from './deepEquals';
 import {_arrayDiff} from './arrayDiff';
-import {checkIsDiffRecord} from "./checkIsDiffRecord";
+import {checkIsDiffRecord} from './checkIsDiffRecord';
 
-export const _objectDiff = <
-    T extends DiffRecord,
-    U extends DiffRecord = T,
->(
+export const _objectDiff = <T extends DiffRecord, U extends DiffRecord = T>(
     prevVal: T | undefined | null,
     nextVal: U | undefined | null,
     deepMatchers: DiffMatcher[],
@@ -112,10 +109,7 @@ export const _objectDiff = <
     const equals: {[K in keyof T & keyof U]?: PropertyEqualsDiffItem<T, K>} = {};
     const updated: {[K in keyof T & keyof U]?: PropertyUpdatedDiffItem<T, U, K>} = {};
 
-    const shouldDeepDiff =
-        depth === undefined ||
-        depth === null ||
-        depth > 0;
+    const shouldDeepDiff = depth === undefined || depth === null || depth > 0;
     const nextDepth = typeof depth === 'number' ? depth - 1 : undefined;
 
     for (const key in prevVal) {
@@ -144,10 +138,7 @@ export const _objectDiff = <
                             visitedPrev,
                             visitedNext,
                         );
-                    } else if (
-                        checkIsDiffRecord(prevValue) &&
-                        checkIsDiffRecord(nextValue)
-                    ) {
+                    } else if (checkIsDiffRecord(prevValue) && checkIsDiffRecord(nextValue)) {
                         // 传递已访问的 WeakMap 以处理嵌套对象的循环引用
                         diff = _objectDiff(
                             prevValue,
@@ -179,10 +170,7 @@ export const _objectDiff = <
     return result;
 };
 
-export const objectDiff = <
-    T extends DiffRecord,
-    U extends DiffRecord = T,
->(
+export const objectDiff = <T extends DiffRecord, U extends DiffRecord = T>(
     prevVal: T | undefined | null,
     nextVal: U | undefined | null,
     options?: DiffOptions | undefined | null,

@@ -2,6 +2,7 @@ import {describe, it, expect, assert} from 'vitest';
 import {arrayDiff} from '../arrayDiff';
 import type {DeepReadonly} from '../type/DeepReadonly';
 import type {ArrayDiff} from '../type/DiffItem';
+import {DiffMatcher} from "../type/DiffMatcher";
 
 // 定义测试数据类型
 type TestItem = DeepReadonly<{
@@ -22,16 +23,27 @@ type NestTestItem = DeepReadonly<{
     };
 }>;
 
-const nameMatcher = [(a: { name: string }, b: { name: string }) => a.name === b.name];
+const nameOnlyMatchers: DiffMatcher<{name: string}>[] = [(a: {name: string}, b: {name: string}) => a.name === b.name];
 
-const nameValueMatcher = [
-    (a: { name: string }, b: { name: string }) => a.name === b.name,
-    (a: { value: string }, b: { value: string }) => a.value === b.value,
+const nameValueMatchers: DiffMatcher<{name: string, value: string}>[] = [
+    (a: {name: string}, b: {name: string}) => a.name === b.name,
+    (a: {value: string}, b: {value: string}) => a.value === b.value,
 ];
 
-const customNameMatcher = [
+const anyIndexMatchers: DiffMatcher[] = [
+    (_a: any, _b: any, aIndex: number | undefined | null, bIndex: number | undefined | null) => {
+        if (aIndex === undefined || bIndex === undefined || aIndex === null || bIndex === null) return false;
+        return aIndex === bIndex;
+    }
+];
+
+const anyNameMatchers: DiffMatcher[] = [
     (a: any, b: any): boolean => {
-        if ('name' in a && typeof a.name === 'string' && 'name' in b && typeof b.name === 'string')
+        if (
+            typeof a === 'object' && typeof b === 'object' &&
+            'name' in a && typeof a.name === 'string' &&
+            'name' in b && typeof b.name === 'string'
+        )
             return a.name === b.name;
         return false;
     },
@@ -47,9 +59,11 @@ describe('arrayDiff - 基础功能', () => {
             moved: [],
             equals: [],
         };
-        expect(arrayDiff<TestItem>([], [], {matchers: nameMatcher})).toStrictEqual(emptyArrayDiff);
-        expect(arrayDiff<TestItem>(null, null, {matchers: nameMatcher})).toStrictEqual(emptyArrayDiff);
-        expect(arrayDiff<TestItem>(undefined, undefined, {matchers: nameMatcher})).toStrictEqual(
+        expect(arrayDiff<TestItem>([], [], {matchers: nameOnlyMatchers})).toStrictEqual(emptyArrayDiff);
+        expect(arrayDiff<TestItem>(null, null, {matchers: nameOnlyMatchers})).toStrictEqual(
+            emptyArrayDiff,
+        );
+        expect(arrayDiff<TestItem>(undefined, undefined, {matchers: nameOnlyMatchers})).toStrictEqual(
             emptyArrayDiff,
         );
     });
@@ -60,7 +74,7 @@ describe('arrayDiff - 基础功能', () => {
             {name: 'item2', value: 'value2'},
         ];
 
-        const result = arrayDiff<TestItem>(null, nextList, {matchers: nameMatcher});
+        const result = arrayDiff<TestItem>(null, nextList, {matchers: nameOnlyMatchers});
         expect(result.added).toHaveLength(2);
         expect(result.updated).toHaveLength(0);
         expect(result.deleted).toHaveLength(0);
@@ -74,7 +88,7 @@ describe('arrayDiff - 基础功能', () => {
             {name: 'item2', value: 'value2'},
         ];
 
-        const result = arrayDiff<TestItem>(prevList, null, {matchers: nameMatcher});
+        const result = arrayDiff<TestItem>(prevList, null, {matchers: nameOnlyMatchers});
         expect(result.deleted).toHaveLength(2);
         expect(result.added).toHaveLength(0);
         expect(result.updated).toHaveLength(0);
@@ -93,7 +107,7 @@ describe('arrayDiff - 基础功能', () => {
             {name: 'item2', value: 'value2'},
         ];
 
-        const result = arrayDiff<TestItem>(prevList, nextList, {matchers: nameMatcher});
+        const result = arrayDiff<TestItem>(prevList, nextList, {matchers: nameOnlyMatchers});
         expect(result.equals).toHaveLength(2);
         expect(result.added).toHaveLength(0);
         expect(result.updated).toHaveLength(0);
@@ -114,7 +128,7 @@ describe('arrayDiff - 基础功能', () => {
             {name: 'item2', value: 'value2'},
         ];
 
-        const result = arrayDiff<TestItem>(prevList, nextList, {matchers: nameMatcher});
+        const result = arrayDiff<TestItem>(prevList, nextList, {matchers: nameOnlyMatchers});
         expect(result.moved).toHaveLength(3);
         expect(result.equals).toHaveLength(0);
         expect(result.added).toHaveLength(0);
@@ -131,7 +145,7 @@ describe('arrayDiff - 基础功能', () => {
             {name: 'item3', value: 'value3'},
         ];
 
-        const result = arrayDiff<TestItem>(prevList, nextList, {matchers: nameMatcher});
+        const result = arrayDiff<TestItem>(prevList, nextList, {matchers: nameOnlyMatchers});
         expect(result.added).toHaveLength(2);
         expect(result.equals).toHaveLength(1);
         expect(result.deleted).toHaveLength(0);
@@ -150,7 +164,7 @@ describe('arrayDiff - 基础功能', () => {
             {name: 'item2', value: 'value2'},
         ];
 
-        const result = arrayDiff<TestItem>(prevList, nextList, {matchers: nameMatcher});
+        const result = arrayDiff<TestItem>(prevList, nextList, {matchers: nameOnlyMatchers});
         expect(result.updated).toHaveLength(1);
         expect(result.equals).toHaveLength(1);
         expect(result.added).toHaveLength(0);
@@ -167,7 +181,7 @@ describe('arrayDiff - 基础功能', () => {
 
         const nextList: TestItem[] = [{name: 'item1', value: 'value1'}];
 
-        const result = arrayDiff<TestItem>(prevList, nextList, {matchers: nameMatcher});
+        const result = arrayDiff<TestItem>(prevList, nextList, {matchers: nameOnlyMatchers});
         expect(result.deleted).toHaveLength(2);
         expect(result.equals).toHaveLength(1);
         expect(result.added).toHaveLength(0);
@@ -190,7 +204,7 @@ describe('arrayDiff - 基础功能', () => {
             {name: 'item5', value: 'value5'},
         ];
 
-        const result = arrayDiff<TestItem>(prevList, nextList, {matchers: nameMatcher});
+        const result = arrayDiff<TestItem>(prevList, nextList, {matchers: nameOnlyMatchers});
         expect(result.equals).toHaveLength(1);
         expect(result.added).toHaveLength(1);
         expect(result.updated).toHaveLength(1);
@@ -215,7 +229,7 @@ describe('arrayDiff - 多匹配器', () => {
             {name: 'item5', value: 'value4'},
         ];
 
-        const result = arrayDiff<TestItem>(prevList, nextList, {matchers: nameValueMatcher});
+        const result = arrayDiff<TestItem>(prevList, nextList, {matchers: nameValueMatchers});
         expect(result.equals).toHaveLength(1);
         expect(result.added).toHaveLength(1);
         expect(result.updated).toHaveLength(2);
@@ -256,8 +270,8 @@ describe('arrayDiff - 嵌套对象', () => {
         ];
 
         const result = arrayDiff<NestTestItem>(prevList, nextList, {
-            matchers: nameMatcher,
-            deepMatchers: customNameMatcher,
+            matchers: nameOnlyMatchers,
+            deepMatchers: anyNameMatchers,
         });
 
         expect(result.updated).toHaveLength(1);
@@ -268,14 +282,14 @@ describe('arrayDiff - 嵌套对象', () => {
     });
 
     it('嵌套数组的比较', () => {
-        type TestType = DeepReadonly<{ name: string; value: number }[]>;
+        type TestType = DeepReadonly<{name: string; value: number}[]>;
 
         const prevList: TestType[] = [
             [
                 {name: 'a', value: 1},
                 {name: 'b', value: 2},
                 {name: 'c', value: 3},
-            ]
+            ],
         ];
 
         const nextList: TestType[] = [
@@ -287,7 +301,8 @@ describe('arrayDiff - 嵌套对象', () => {
         ];
 
         const result = arrayDiff<TestType>(prevList, nextList, {
-            deepMatchers: customNameMatcher,
+            matchers: anyIndexMatchers,
+            deepMatchers: anyNameMatchers,
         });
 
         expect(result.updated).toHaveLength(1);
@@ -299,7 +314,7 @@ describe('arrayDiff - 嵌套对象', () => {
         // 验证嵌套数组的 diff
         const updatedItem = result.updated[0];
         expect(updatedItem?.diff?.type).toBe('array');
-        assert(updatedItem?.diff?.type === 'array')
+        assert(updatedItem?.diff?.type === 'array');
         expect(updatedItem?.diff).toStrictEqual({
             type: 'array',
             equals: [
@@ -340,16 +355,12 @@ describe('arrayDiff - 嵌套对象', () => {
 
 describe('arrayDiff - depth参数', () => {
     it('depth 为 0 时不进行深层比较', () => {
-        const prevList: TestItem[] = [
-            {name: 'item1', value: 'oldValue'},
-        ];
+        const prevList: TestItem[] = [{name: 'item1', value: 'oldValue'}];
 
-        const nextList: TestItem[] = [
-            {name: 'item1', value: 'newValue'},
-        ];
+        const nextList: TestItem[] = [{name: 'item1', value: 'newValue'}];
 
         const result = arrayDiff<TestItem>(prevList, nextList, {
-            matchers: nameMatcher,
+            matchers: nameOnlyMatchers,
             depth: 0,
         });
 
@@ -372,16 +383,12 @@ describe('arrayDiff - depth参数', () => {
     });
 
     it('depth 为 1 时进行一层深层比较', () => {
-        const prevList: TestItem[] = [
-            {name: 'item1', value: 'oldValue'},
-        ];
+        const prevList: TestItem[] = [{name: 'item1', value: 'oldValue'}];
 
-        const nextList: TestItem[] = [
-            {name: 'item1', value: 'newValue'},
-        ];
+        const nextList: TestItem[] = [{name: 'item1', value: 'newValue'}];
 
         const result = arrayDiff<TestItem>(prevList, nextList, {
-            matchers: nameMatcher,
+            matchers: nameOnlyMatchers,
             depth: 1,
         });
 
@@ -428,16 +435,12 @@ describe('arrayDiff - depth参数', () => {
             };
         };
 
-        const prevList: NestTestItem[] = [
-            {name: 'item1', details: {id: 1, value: 1}},
-        ];
+        const prevList: NestTestItem[] = [{name: 'item1', details: {id: 1, value: 1}}];
 
-        const nextList: NestTestItem[] = [
-            {name: 'item1', details: {id: 1, value: 2}},
-        ];
+        const nextList: NestTestItem[] = [{name: 'item1', details: {id: 1, value: 2}}];
 
         const result = arrayDiff<NestTestItem>(prevList, nextList, {
-            matchers: nameMatcher,
+            matchers: nameOnlyMatchers,
             depth: 2,
         });
 
@@ -475,16 +478,12 @@ describe('arrayDiff - depth参数', () => {
             };
         };
 
-        const prevList: NestTestItem[] = [
-            {name: 'item1', details: {id: 1, nested: {value: 1}}},
-        ];
+        const prevList: NestTestItem[] = [{name: 'item1', details: {id: 1, nested: {value: 1}}}];
 
-        const nextList: NestTestItem[] = [
-            {name: 'item1', details: {id: 1, nested: {value: 2}}},
-        ];
+        const nextList: NestTestItem[] = [{name: 'item1', details: {id: 1, nested: {value: 2}}}];
 
         const result = arrayDiff<NestTestItem>(prevList, nextList, {
-            matchers: nameMatcher,
+            matchers: nameOnlyMatchers,
             depth: 2,
         });
 
@@ -509,13 +508,9 @@ describe('arrayDiff - depth参数', () => {
             };
         };
 
-        const prevList: DeepNestItem[] = [
-            {name: 'item1', level1: {level2: {level3: 1}}},
-        ];
+        const prevList: DeepNestItem[] = [{name: 'item1', level1: {level2: {level3: 1}}}];
 
-        const nextList: DeepNestItem[] = [
-            {name: 'item1', level1: {level2: {level3: 2}}},
-        ];
+        const nextList: DeepNestItem[] = [{name: 'item1', level1: {level2: {level3: 2}}}];
 
         const assertResult = (result: ArrayDiff<DeepNestItem>) => {
             expect(result.updated).toHaveLength(1);
@@ -523,17 +518,21 @@ describe('arrayDiff - depth参数', () => {
             expect(updatedItem?.diff?.type).toBe('object');
             assert(updatedItem?.diff?.type === 'object');
             assert(updatedItem?.diff?.updated?.level1?.diff?.type === 'object');
-            assert(updatedItem?.diff?.updated?.level1?.diff?.updated?.level2?.diff?.type === 'object');
-            expect(updatedItem.diff.updated?.level1?.diff?.updated?.level2?.diff?.updated?.level3).toBeDefined();
+            assert(
+                updatedItem?.diff?.updated?.level1?.diff?.updated?.level2?.diff?.type === 'object',
+            );
+            expect(
+                updatedItem.diff.updated?.level1?.diff?.updated?.level2?.diff?.updated?.level3,
+            ).toBeDefined();
         };
 
         const nullResult = arrayDiff<DeepNestItem>(prevList, nextList, {
-            matchers: nameMatcher,
+            matchers: nameOnlyMatchers,
             depth: null,
         });
         assertResult(nullResult);
         const undefinedResult = arrayDiff<DeepNestItem>(prevList, nextList, {
-            matchers: nameMatcher,
+            matchers: nameOnlyMatchers,
             depth: undefined,
         });
         assertResult(undefinedResult);
@@ -545,18 +544,14 @@ describe('arrayDiff - depth参数', () => {
             items: {id: number}[];
         };
 
-        const prevList: ArrayNestItem[] = [
-            {name: 'item1', items: [{id: 1}]},
-        ];
+        const prevList: ArrayNestItem[] = [{name: 'item1', items: [{id: 1}]}];
 
-        const nextList: ArrayNestItem[] = [
-            {name: 'item1', items: [{id: 2}]},
-        ];
+        const nextList: ArrayNestItem[] = [{name: 'item1', items: [{id: 2}]}];
 
         const result = arrayDiff<ArrayNestItem>(prevList, nextList, {
-            matchers: nameMatcher,
+            matchers: nameOnlyMatchers,
             depth: 2,
-            deepMatchers: customNameMatcher,
+            deepMatchers: anyNameMatchers,
         });
 
         expect(result.updated).toHaveLength(1);
@@ -566,8 +561,62 @@ describe('arrayDiff - depth参数', () => {
         expect(updatedItem.diff.updated?.items?.diff?.type).toBe('array');
         // 由于深度限制，数组内部的对象不会再进行深层比较
         const itemsArrayDiff = updatedItem.diff.updated?.items?.diff;
-        assert(itemsArrayDiff?.type === 'array')
+        assert(itemsArrayDiff?.type === 'array');
         // 数组内的对象更新不会有 diff，因为深度已用完
         expect(itemsArrayDiff.updated[0]?.diff).toBeUndefined();
+    });
+});
+
+describe('arrayDiff - 默认匹配规则', () => {
+    it('验证默认匹配规则下的移动', () => {
+        const prev = [{id: 1}, {id: 2}, {id: 3}];
+        const next = [{id: 3}, {id: 1}, {id: 2}];
+
+        const result = arrayDiff(prev, next);
+        expect(result.updated).toHaveLength(0);
+        expect(result.moved).toStrictEqual([
+            {
+                data: {
+                    id: 1,
+                },
+                prevIndex: 0,
+                nextIndex: 1,
+            },
+            {
+                data: {
+                    id: 2,
+                },
+                prevIndex: 1,
+                nextIndex: 2,
+            },
+            {
+                data: {
+                    id: 3,
+                },
+                prevIndex: 2,
+                nextIndex: 0,
+            },
+        ]);
+    });
+
+    it('验证默认匹配规则下的更新', () => {
+        const prev = [{id: 1}, {id: 2}, {id: 3}];
+        const next = [{id: 1}, {id: 2}, {id: 4}];
+
+        const result = arrayDiff(prev, next);
+        expect(result.moved).toHaveLength(0);
+        expect(result.updated).toHaveLength(0);
+        expect(result.added[0]).toStrictEqual({
+            data: {
+                id: 4,
+            },
+            nextIndex: 2,
+        });
+        expect(result.deleted[0]).toStrictEqual({
+            data: {
+                id: 3,
+            },
+            prevIndex: 2,
+        });
     });
 });

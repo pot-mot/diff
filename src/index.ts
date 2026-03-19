@@ -1,13 +1,6 @@
-export type {
-    DiffRecord,
-} from './type/DiffRecord';
-export type {
-    DiffOptions,
-    ArrayDiffOptions,
-} from './type/DiffOptions';
-export type {
-    DiffMatcher,
-} from './type/DiffMatcher';
+export type {DiffRecord} from './type/DiffRecord';
+export type {DiffOptions, ArrayDiffOptions} from './type/DiffOptions';
+export type {DiffMatcher} from './type/DiffMatcher';
 export type {
     CircularReferenceDiff,
     ObjectDiff,

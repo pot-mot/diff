@@ -287,7 +287,7 @@ const result = objectDiff(obj1, obj2);
 - `nextList` - 新数组，可以为 `undefined` 或 `null`
 - `options` - 可选，配置对象，包含以下属性：
   - `depth` - 可选，递归深度限制
-  - `matchers` - 可选，匹配函数列表，用于识别同一元素，默认为 `[(a, b, aIndex, bIndex) => aIndex === bIndex]`
+  - `matchers` - 可选，匹配函数列表，用于识别同一元素，默认为 `[deepEquals]`
   - `deepMatchers` - 可选，自定义深度比较函数列表，默认为 `[deepEquals]`
 
 **返回：** `ArrayDiff` - 差异结果对象，包含以下属性：

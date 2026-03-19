@@ -1,9 +1,9 @@
-import {type DiffMatcher} from "./type/DiffMatcher";
+import {type DiffMatcher} from './type/DiffMatcher';
 import type {ArrayDiffOptions} from './type/DiffOptions';
 import type {ArrayDiff, CircularReferenceDiff, ObjectDiff} from './type/DiffItem';
 import {deepEquals} from './deepEquals';
 import {_objectDiff} from './objectDiff';
-import {checkIsDiffRecord} from "./checkIsDiffRecord";
+import {checkIsDiffRecord} from './checkIsDiffRecord';
 
 export const _arrayDiff = <T>(
     prevList: ReadonlyArray<T> | undefined | null,
@@ -49,10 +49,7 @@ export const _arrayDiff = <T>(
     visitedPrev.add(prevList);
     visitedNext.add(nextList);
 
-    const shouldDeepDiff =
-        depth === undefined ||
-        depth === null ||
-        depth > 0;
+    const shouldDeepDiff = depth === undefined || depth === null || depth > 0;
     const nextDepth = typeof depth === 'number' ? depth - 1 : undefined;
 
     for (const matcher of matchers) {
@@ -95,10 +92,7 @@ export const _arrayDiff = <T>(
                             visitedPrev,
                             visitedNext,
                         );
-                    } else if (
-                        checkIsDiffRecord(prevItem) &&
-                        checkIsDiffRecord(nextItem)
-                    ) {
+                    } else if (checkIsDiffRecord(prevItem) && checkIsDiffRecord(nextItem)) {
                         diff = _objectDiff(
                             prevItem,
                             nextItem,
@@ -139,9 +133,17 @@ export const arrayDiff = <T>(
     nextList: ReadonlyArray<T> | undefined | null,
     options?: ArrayDiffOptions<T> | undefined | null,
 ): ArrayDiff<T> => {
-    const matchers = options?.matchers ?? [(_a, _b, aIndex, bIndex) => aIndex === bIndex];
+    const matchers = options?.matchers ?? [deepEquals];
     const deepMatchers = options?.deepMatchers ?? [deepEquals];
     const depth = options?.depth;
 
-    return _arrayDiff(prevList, nextList, matchers, deepMatchers, depth, new WeakSet(), new WeakSet());
+    return _arrayDiff(
+        prevList,
+        nextList,
+        matchers,
+        deepMatchers,
+        depth,
+        new WeakSet(),
+        new WeakSet(),
+    );
 };

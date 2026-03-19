@@ -584,7 +584,7 @@ describe('objectDiff - depth参数', () => {
                     },
                 },
             },
-        }
+        };
 
         const nullResult = objectDiff(obj1, obj2, {depth: null});
         expect(nullResult).toStrictEqual(excepted);
