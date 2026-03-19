@@ -1,7 +1,7 @@
 {
   "name": "@potmot/diff",
   "private": false,
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Lightweight deep diff tool for JavaScript objects and arrays.",
   "keywords": [
     "diff"
@@ -40,7 +40,8 @@
   "scripts": {
     "build": "tsc & vite build",
     "test": "vitest run",
-    "lint:pritter": "prettier --write src/"
+    "lint:pritter": "prettier --write src/",
+    "publish": "pnpm build & npm publish"
   },
   "lint-staged": {
     "*.{js,ts,vue,json,css}": [
